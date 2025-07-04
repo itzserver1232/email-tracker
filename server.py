@@ -8,7 +8,6 @@ app.secret_key = os.urandom(24)
 log_entries = []
 PASSWORD = "297854"
 
-# Auto-logout after 1 minute
 @app.before_request
 def auto_logout():
     if session.get("authenticated") and "login_time" in session:
@@ -40,11 +39,11 @@ def view_log():
 
     if not session.get("authenticated"):
         return '''
-        <html><head><title>Login</title></head><body>
+        <html><body>
         <h2>🔐 Enter Password to View Logs</h2>
         <form method="post">
-            <input type="password" name="password" placeholder="Enter password" required style="font-size:16px;"><br><br>
-            <input type="submit" value="Login" style="font-size:16px;">
+            <input type="password" name="password" placeholder="Enter password" required>
+            <input type="submit" value="Login">
         </form>
         </body></html>
         '''
@@ -54,24 +53,25 @@ def view_log():
         parts = line.strip().split("] Opened by: ")
         if len(parts) == 2:
             time = parts[0].replace("[", "")
-            try:
-                user, ip = parts[1].split(" | IP: ")
-                logs.append({"time": time, "user": user, "ip": ip})
-            except:
-                continue  # Skip malformed lines
+            rest = parts[1]
+            if " | IP: " in rest:
+                try:
+                    user, ip = rest.split(" | IP: ")
+                    logs.append({"time": time, "user": user, "ip": ip})
+                except ValueError:
+                    continue
 
     visitor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
     html = '''
     <html>
-    <head>
-        <title>📊 Email Tracker Logs</title>
-        <style>
-            body { font-family: Arial; background: #f5f5f5; padding: 20px; }
-            .log { background: white; margin: 10px 0; padding: 10px; border-left: 5px solid #007bff; }
-            h2 { color: #007bff; }
-            .ip { font-size: 14px; color: #666; margin-bottom: 20px; }
-        </style>
+    <head><title>📊 Email Tracker Logs</title>
+    <style>
+        body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+        .log { background: white; margin: 10px 0; padding: 10px; border-left: 5px solid #007bff; }
+        h2 { color: #007bff; }
+        .ip { font-size: 14px; color: #666; margin-bottom: 20px; }
+    </style>
     </head>
     <body>
         <h2>📊 Email Open Log</h2>
@@ -83,10 +83,7 @@ def view_log():
                 🌐 IP: {{ entry.ip }}
             </div>
         {% endfor %}
-        <br>
-        <form action="/logout" method="get">
-            <button type="submit">🚪 Logout</button>
-        </form>
+        <br><form action="/logout" method="get"><button type="submit">🚪 Logout</button></form>
     </body>
     </html>
     '''
