@@ -17,6 +17,11 @@ def pixel():
 @app.route("/")
 def home():
     return "Email Tracker Running"
+    
+@app.route("/log")
+def view_log():
+    with open("log.txt", "r") as f:
+        return "<pre>" + f.read() + "</pre>"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
