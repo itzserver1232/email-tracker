@@ -3,11 +3,12 @@ from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.urandom(24)  # Needed for login sessions
 
-log_entries = []
-PASSWORD = "297854"
+log_entries = []  # Store tracking info in memory
+PASSWORD = "297854"  # Set your password here
 
+# 🔁 Auto logout if session is over 1 minute
 @app.before_request
 def auto_logout():
     if session.get("authenticated") and "login_time" in session:
@@ -18,10 +19,12 @@ def auto_logout():
 @app.route("/pixel.png")
 def pixel():
     user = request.args.get("user", "unknown")
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)  # ✅ Real IP support
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     log_entries.append(f"[{time}] Opened by: {user} | IP: {ip}")
+    
+    # ✅ Ensure pixel.png exists in your project root
     return send_file("pixel.png", mimetype="image/png")
 
 @app.route("/", methods=["GET"])
@@ -49,7 +52,7 @@ def view_log():
         </body></html>
         '''
 
-    # Show logs
+    # Parse recent logs
     logs = []
     for line in reversed(log_entries[-100:]):
         parts = line.strip().split("] Opened by: ")
@@ -58,12 +61,12 @@ def view_log():
             user, ip = parts[1].split(" | IP: ")
             logs.append({"time": time, "user": user, "ip": ip})
 
-    visitor_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    visitor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
     html = '''
     <html>
     <head>
-        <title>Email Tracker Logs</title>
+        <title>📊 Email Tracker Logs</title>
         <style>
             body { font-family: Arial; background: #f5f5f5; padding: 20px; }
             .log { background: white; margin: 10px 0; padding: 10px; border-left: 5px solid #007bff; }
