@@ -3,12 +3,12 @@ from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Needed for login sessions
+app.secret_key = os.urandom(24)
 
-log_entries = []  # Store tracking info in memory
-PASSWORD = "297854"  # Set your password here
+log_entries = []
+PASSWORD = "297854"
 
-# 🔁 Auto logout if session is over 1 minute
+# Auto-logout after 1 minute
 @app.before_request
 def auto_logout():
     if session.get("authenticated") and "login_time" in session:
@@ -19,12 +19,9 @@ def auto_logout():
 @app.route("/pixel.png")
 def pixel():
     user = request.args.get("user", "unknown")
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr)  # ✅ Real IP support
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
     log_entries.append(f"[{time}] Opened by: {user} | IP: {ip}")
-    
-    # ✅ Ensure pixel.png exists in your project root
     return send_file("pixel.png", mimetype="image/png")
 
 @app.route("/", methods=["GET"])
@@ -43,23 +40,25 @@ def view_log():
 
     if not session.get("authenticated"):
         return '''
-        <html><body>
+        <html><head><title>Login</title></head><body>
         <h2>🔐 Enter Password to View Logs</h2>
         <form method="post">
-            <input type="password" name="password" placeholder="Enter password" style="font-size:16px;" required>
+            <input type="password" name="password" placeholder="Enter password" required style="font-size:16px;"><br><br>
             <input type="submit" value="Login" style="font-size:16px;">
         </form>
         </body></html>
         '''
 
-    # Parse recent logs
     logs = []
     for line in reversed(log_entries[-100:]):
         parts = line.strip().split("] Opened by: ")
         if len(parts) == 2:
             time = parts[0].replace("[", "")
-            user, ip = parts[1].split(" | IP: ")
-            logs.append({"time": time, "user": user, "ip": ip})
+            try:
+                user, ip = parts[1].split(" | IP: ")
+                logs.append({"time": time, "user": user, "ip": ip})
+            except:
+                continue  # Skip malformed lines
 
     visitor_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
@@ -84,7 +83,10 @@ def view_log():
                 🌐 IP: {{ entry.ip }}
             </div>
         {% endfor %}
-        <br><form action="/logout" method="get"><button type="submit">🚪 Logout</button></form>
+        <br>
+        <form action="/logout" method="get">
+            <button type="submit">🚪 Logout</button>
+        </form>
     </body>
     </html>
     '''
